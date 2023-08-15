@@ -1,21 +1,22 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"flag"
-	"github.com/gorilla/websocket"
-	"time"
-	"net/http"
-	"log"
 	"fmt"
+	"log"
+	"net/http"
 	"sync"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 var (
-	listen = flag.String("listen", ":12312", "server listen port(example :12312)")
+	listen  = flag.String("listen", ":12312", "server listen port(example :12312)")
 	message = make(map[string]chan interface{})
-	client = make(map[string]*websocket.Conn)
-	mux sync.Mutex
+	client  = make(map[string]*websocket.Conn)
+	mux     sync.Mutex
 )
 
 func main() {
@@ -46,11 +47,14 @@ func main() {
 			deleteMessageChannel(id)
 		}
 	})
-	
+
 	r.POST("/message/:id", messageHandle)
 	r.POST("/message", messageHandle)
-	
-	r.Run(*listen)
+
+	err := r.Run(*listen)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func messageHandle(c *gin.Context) {
@@ -120,7 +124,7 @@ func WsHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 	for {
 		select {
-		case content, ok := <- m:
+		case content, ok := <-m:
 			err = conn.WriteJSON(content)
 			if err != nil {
 				log.Println(err)
@@ -189,7 +193,7 @@ func setMessage(id string, content interface{}) {
 	mux.Unlock()
 }
 
-func setMessageAllClient(content interface{})  {
+func setMessageAllClient(content interface{}) {
 	mux.Lock()
 	all := message
 	mux.Unlock()
